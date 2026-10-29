@@ -1,0 +1,28 @@
+build/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.cache/
+
+# Benchmark data and figures: regenerate with bench/
+outputs/
+plots/
+data/
+
+# Local only: agent notes, tests, design notes, remote GPU access
+AGENTS.md
+.claude/
+tests/
+docs/
+scripts/
+.ssh/
+
+# Profiler output
+*.nsys-rep
+*.ncu-rep
+*.sqlite
+
+.DS_Store
+.vscode/
+.idea/

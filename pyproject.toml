@@ -1,0 +1,37 @@
+[project]
+name = "int4-gemv-cuda"
+version = "0.1.0"
+description = "W4A16 GEMV CUDA kernels, step by step, with bandwidth analysis"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "torch==2.14.1",
+    "matplotlib>=3.9",
+    "seaborn>=0.13.2",
+]
+
+[dependency-groups]
+lint = ["pre-commit>=4.6,<4.7"]
+dev = [{ include-group = "lint" }, "cmake>=3.28", "ninja>=1.11", "pytest>=8"]
+
+[tool.uv]
+package = false
+
+# CUDA wheels on the GPU machine; the default CPU wheel elsewhere (lint-only on macOS).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
