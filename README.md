@@ -1,6 +1,6 @@
 INT4 GEMV Kernels in CUDA
 =======================
-CUDA kernels for W4A16 GEMV (4-bit weights, FP16 activations), compared with FP16 cuBLAS on an RTX 3090. The weights stay packed in memory and are unpacked in registers inside the kernel. At batch 1, our fastest kernel is **2.9–3.4× faster than FP16 cuBLAS** on real Llama-3 weight matrices, close to the 3.76× limit set by the byte savings.
+CUDA kernels for W4A16 GEMV (4-bit weights, FP16 activations), compared with FP16 cuBLAS on an RTX 3090. The weights stay packed in memory and are unpacked in registers inside the kernel. At batch 1, our fastest kernel is **2.9–3.3× faster than FP16 cuBLAS** on real Llama-3 weight matrices, close to the 3.76× limit set by the byte savings.
 
 Kernels
 ------------
@@ -14,15 +14,15 @@ Weights are quantized with plain round-to-nearest to 4 bits, in groups of 128 wi
 
 Results
 ------------
-RTX 3090, default clocks. Weights are real Llama-3 matrices: layer 40 Q projection of Llama-3-70B (70B), and layer 16 Q projection and MLP up projection of Llama-3-8B (8B). Batch 1, time per call:
+RTX 3090, default clocks. Weights are real Llama-3 matrices: layer 40 Q projection of Llama-3-70B (70B), and layer 16 Q projection, MLP up projection and MLP down projection of Llama-3-8B (8B). Batch 1, time per call:
 
-| | 70B Q Proj, 8192 × 8192 | 8B Q Proj, 4096 × 4096 | 8B MLP Up, 14336 × 4096 |
-| --- | --- | --- | --- |
-| cuBLAS FP16 | 164 µs | 47 µs | 149 µs |
-| `naive` | 371 µs | 171 µs | 201 µs |
-| `coalesced` | 93 µs | 30 µs | 79 µs |
-| `vectorized` | **52 µs** | **16 µs** | **44 µs** |
-| speedup over cuBLAS | **3.14×** | **2.88×** | **3.37×** |
+| | 70B Q Proj, 8192 × 8192 | 8B Q Proj, 4096 × 4096 | 8B MLP Up, 14336 × 4096 | 8B MLP Down, 4096 × 14336 |
+| --- | --- | --- | --- | --- |
+| cuBLAS FP16 | 165 µs | 48 µs | 149 µs | 151 µs |
+| `naive` | 400 µs | 170 µs | 200 µs | 538 µs |
+| `coalesced` | 93 µs | 30 µs | 79 µs | 94 µs |
+| `vectorized` | **52 µs** | **16 µs** | **45 µs** | **45 µs** |
+| speedup over cuBLAS | **3.16×** | **2.94×** | **3.30×** | **3.34×** |
 
 <p align="center">
   <img src="./imgs/speedup.png" width="60%">
@@ -63,7 +63,7 @@ Usage
 ```bash
 uv sync
 uv run cmake --preset release && uv run cmake --build --preset release
-uv run python -m bench.sweep          # every kernel and cuBLAS, 3 matrices, M = 1..32
+uv run python -m bench.sweep          # every kernel and cuBLAS, 4 matrices, M = 1..32
 uv run python -m bench.block_sweep    # vectorized: threads per block × rows per warp, M = 1 and 8
 uv run python -m bench.ceiling        # vectorized vs. its loads alone
 uv run python -m bench.profile        # Nsight Compute counters; needs profiler access

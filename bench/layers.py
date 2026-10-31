@@ -21,6 +21,7 @@ LAYERS = {
     "llama3_70b_q": (LLAMA3_70B, "model.layers.40.self_attn.q_proj.weight"),  # 8192 x 8192
     "llama3_8b_q": (LLAMA3_8B, "model.layers.16.self_attn.q_proj.weight"),  # 4096 x 4096
     "llama3_8b_up": (LLAMA3_8B, "model.layers.16.mlp.up_proj.weight"),  # 14336 x 4096
+    "llama3_8b_down": (LLAMA3_8B, "model.layers.16.mlp.down_proj.weight"),  # 4096 x 14336, long K
 }
 
 CACHE = Path(__file__).resolve().parents[1] / "data"

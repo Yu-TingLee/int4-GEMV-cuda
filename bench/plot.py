@@ -26,24 +26,26 @@ TIMES = r"$\times$"
 MICRO = r"$\mu$"
 
 # seaborn's colorblind palette (passes a CVD check); gray for the cuBLAS baseline
-BLUE, ORANGE, GREEN = "#0173b2", "#de8f05", "#029e73"
+BLUE, ORANGE, GREEN, RED = "#0173b2", "#de8f05", "#029e73", "#d55e00"
 GRAY = "#8c8c8c"
 INK, INK_2 = "#222222", "#5a5a5a"
 DASHED = (0, (3, 2))
 
 KERNELS = ["cublas_fp16", "naive", "coalesced", "vectorized"]
 KERNEL_COLORS = {"cublas_fp16": GRAY, "naive": BLUE, "coalesced": ORANGE, "vectorized": GREEN}
-SHAPES = ["llama3_70b_q", "llama3_8b_q", "llama3_8b_up"]
-SHAPE_COLORS = [BLUE, ORANGE, GREEN]
+SHAPES = ["llama3_70b_q", "llama3_8b_q", "llama3_8b_up", "llama3_8b_down"]
+SHAPE_COLORS = [BLUE, ORANGE, GREEN, RED]
 LAYER_NAMES = {
     "llama3_70b_q": "70B Q Proj",  # Llama-3-70B; the captions say so
     "llama3_8b_q": "8B Q Proj",
     "llama3_8b_up": "8B MLP Up",
+    "llama3_8b_down": "8B MLP Down",
 }
 LAYER_SIZES = {
     "llama3_70b_q": (8192, 8192),
     "llama3_8b_q": (4096, 4096),
     "llama3_8b_up": (14336, 4096),
+    "llama3_8b_down": (4096, 14336),
 }
 BATCHES = [1, 2, 4, 8, 16, 32]
 
@@ -134,7 +136,7 @@ def bars(ax, labels, values, colors):
 
 def kernel_panels(rows, column: str, ylabel: str, name: str, roof: float | None = None):
     """One panel per layer, one bar per kernel at batch 1, kernels named in a shared legend."""
-    fig, axes = plt.subplots(1, 3, figsize=DOUBLE, layout="constrained")
+    fig, axes = plt.subplots(1, len(SHAPES), figsize=DOUBLE, layout="constrained")
     for ax, shape in zip(axes, SHAPES, strict=True):
         values = [float(lookup(rows, shape=shape, m=1, kernel=k)[column]) for k in KERNELS]
         bars(ax, None, values, [KERNEL_COLORS[k] for k in KERNELS])
@@ -188,11 +190,11 @@ def plot_speedup(rows):
         if kernel == "vectorized":
             for x, y in zip(xs, ys, strict=True):
                 ax.text(x, y, f"{y:.1f}{TIMES}", ha="center", va="bottom", fontsize=6.5)
-    ideal_line(ax, 2.5, 0.05)
+    ideal_line(ax, len(SHAPES) - 0.5, 0.05)
     ax.set_xticks(range(len(SHAPES)), [LAYER_NAMES[s] for s in SHAPES])
     ax.tick_params(axis="x", length=0)
     ax.set_ylabel("Speedup over cuBLAS FP16")
-    ax.set_xlim(-0.55, 2.55)
+    ax.set_xlim(-0.55, len(SHAPES) - 0.45)
     ax.set_ylim(0, 4.6)
     ax.legend(loc="upper left", ncol=3, handlelength=1.2, columnspacing=0.8)
     save(fig, "speedup.png")
@@ -201,7 +203,7 @@ def plot_speedup(rows):
 def plot_batch(rows):
     """Speedup of vectorized over cuBLAS FP16 as the batch grows."""
     fig, ax = plt.subplots(figsize=SINGLE, layout="constrained")
-    for shape, color, marker in zip(SHAPES, SHAPE_COLORS, "osD", strict=True):
+    for shape, color, marker in zip(SHAPES, SHAPE_COLORS, "osD^", strict=True):
         ys = [
             float(lookup(rows, shape=shape, m=m, kernel="vectorized")["speedup_vs_cublas"])
             for m in BATCHES
@@ -336,7 +338,7 @@ def plot_profile(rows):
 def plot_ceiling(rows):
     """vectorized against its own loads alone and torch's FP32 sum over the same bytes."""
     names = {"sum": "torch sum", "load_only": "loads only", "vectorized": "vectorized"}
-    fig, axes = plt.subplots(1, 3, figsize=DOUBLE, sharey=True, layout="constrained")
+    fig, axes = plt.subplots(1, len(SHAPES), figsize=DOUBLE, sharey=True, layout="constrained")
     for ax, shape in zip(axes, SHAPES, strict=True):
         pcts = [float(lookup(rows, shape=shape, kernel=k)["pct_peak"]) for k in names]
         bars(ax, list(names.values()), pcts, [GRAY, GRAY, GREEN])
@@ -362,7 +364,7 @@ def plot_block_sweep(rows):
     )
     for ax, m in zip(axes[0], batches, strict=True):
         panel = [r for r in rows if int(r.get("m", 1)) == m]
-        for rpw, color, marker in zip(["1", "2", "4"], SHAPE_COLORS, "osD", strict=True):
+        for rpw, color, marker in zip(["1", "2", "4"], SHAPE_COLORS[:3], "osD", strict=True):
             pts = sorted(
                 (int(r["threads_per_block"]), float(r["pct_peak"]))
                 for r in panel
